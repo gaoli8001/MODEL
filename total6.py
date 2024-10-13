@@ -16,126 +16,66 @@ import pandas as pd
 import shap
 import matplotlib.pyplot as plt
 
-# 加载训练好的逻辑回归模型、缩放器和特征名称
-@st.cache_resource
-def load_model():
-    saved = joblib.load('LOG.pkl')
-    model = saved['model']
-    scaler = saved['scaler']
-    feature_names = saved['features']
-    return model, scaler, feature_names
+# Load the model
+model = joblib.load('LOG.pkl')  # Load the best Logistic Regression model trained with selected features
 
-model, scaler, feature_names = load_model()
+# Define feature names
+feature_names = [
+    "HbA1c", "Weight", "Tyg", "LDL", "Age", "RBC", "Sex", "GLU", "WBC", "PLR", "CRP"
+]
 
-# Streamlit 用户界面
-st.title("Type 2 Diabetes Mellitus (T2DM) Predictor")
+# Streamlit user interface
+st.title("Type 2 Diabetes Predictor")
 
-st.header("Input Your Health Metrics")
+# Input features
+age = st.number_input("Age:", min_value=1, max_value=120, value=50)
+sex = st.selectbox("Sex (0=Female, 1=Male):", options=[0, 1], format_func=lambda x: 'Female (0)' if x == 0 else 'Male (1)')
+weight = st.number_input("Weight (kg):", min_value=20.0, max_value=200.0, value=70.0)
+hba1c = st.number_input("HbA1c (%):", min_value=2.0, max_value=15.0, value=5.5)
+ldl = st.number_input("LDL (mg/dL):", min_value=50.0, max_value=300.0, value=100.0)
+rbc = st.number_input("RBC (10^6/uL):", min_value=2.0, max_value=10.0, value=5.0)
+glu = st.number_input("GLU (mg/dL):", min_value=50.0, max_value=400.0, value=120.0)
+wbc = st.number_input("WBC (10^3/uL):", min_value=1.0, max_value=20.0, value=7.0)
+plr = st.number_input("PLR (Platelet-Lymphocyte Ratio):", min_value=0.0, max_value=500.0, value=150.0)
+crp = st.number_input("CRP (mg/L):", min_value=0.0, max_value=100.0, value=5.0)
+tyg = st.number_input("Tyg (Triacylglycerol):", min_value=0.0, max_value=10.0, value=1.5)
 
-# 收集用户输入的各个特征
-
-# HbA1c (%)
-HbA1c = st.number_input("HbA1c (%):", min_value=4.0, max_value=15.0, value=5.5, format="%.1f")
-
-# Weight (kg)
-Weight = st.number_input("Weight (kg):", min_value=30.0, max_value=200.0, value=70.0, format="%.1f")
-
-# Tyg
-Tyg = st.number_input("Triglyceride and Glucose Index (Tyg):", min_value=-10.0, max_value=10.0, value=0.0, format="%.2f")
-
-# LDL Cholesterol (mg/dL)
-LDL = st.number_input("Low-Density Lipoprotein Cholesterol (LDL) (mg/dL):", min_value=10.0, max_value=300.0, value=100.0, format="%.1f")
-
-# Age (years)
-age = st.number_input("Age (years):", min_value=1, max_value=120, value=50)
-
-# RBC (×10¹²/L)
-RBC = st.number_input("Red Blood Cell Count (RBC) (×10¹²/L):", min_value=2.0, max_value=10.0, value=4.5, format="%.2f")
-
-# Sex
-sex_options = {'Female': 0, 'Male': 1}
-sex_input = st.selectbox("Sex:", options=list(sex_options.keys()))
-sex = sex_options[sex_input]
-
-# GLU (Blood Glucose Level) (mg/dL)
-GLU = st.number_input("Blood Glucose Level (GLU) (mg/dL):", min_value=50.0, max_value=500.0, value=100.0, format="%.1f")
-
-# WBC (×10⁹/L)
-WBC = st.number_input("White Blood Cell Count (WBC) (×10⁹/L):", min_value=1.0, max_value=20.0, value=6.0, format="%.1f")
-
-# PLR (Platelet-to-Lymphocyte Ratio)
-PLR = st.number_input("Platelet-to-Lymphocyte Ratio (PLR):", min_value=0.0, max_value=500.0, value=100.0, format="%.2f")
-
-# CRP (mg/L)
-CRP = st.number_input("C-Reactive Protein (CRP) (mg/L):", min_value=0.0, max_value=200.0, value=5.0, format="%.1f")
-
-# 将输入收集到特征数组中
-feature_values = [HbA1c, Weight, Tyg, LDL, age, RBC, sex, GLU, WBC, PLR, CRP]
+# Process inputs and make predictions
+feature_values = [hba1c, weight, tyg, ldl, age, rbc, sex, glu, wbc, plr, crp]
 features = np.array([feature_values])
 
-# 用户点击 "Predict" 按钮时执行的操作
 if st.button("Predict"):
-    # 预处理输入：应用缩放器
-    X_scaled = scaler.transform(features)
-    
-    # 进行预测
-    predicted_class = model.predict(X_scaled)[0]
-    predicted_proba = model.predict_proba(X_scaled)[0]
-    
-    # 显示预测结果
-    st.subheader("Prediction Results")
-    if predicted_class == 1:
-        st.write(f"**Prediction:** High risk of Type 2 Diabetes Mellitus (T2DM)")
-    else:
-        st.write(f"**Prediction:** Low risk of Type 2 Diabetes Mellitus (T2DM)")
-    st.write(f"**Probability of T2DM:** {predicted_proba[1]*100:.1f}%")
-    st.write(f"**Probability of Non-T2DM:** {predicted_proba[0]*100:.1f}%")
-    
-    # 根据预测结果生成建议
+    # Predict class and probabilities
+    predicted_class = model.predict(features)[0]
+    predicted_proba = model.predict_proba(features)[0]
+
+    # Display prediction results
+    st.write(f"**Predicted Class:** {predicted_class}")
+    st.write(f"**Prediction Probabilities:** {predicted_proba}")
+
+    # Generate advice based on prediction results
+    probability = predicted_proba[predicted_class] * 100
     if predicted_class == 1:
         advice = (
-            f"According to our model, you have a **high risk** of Type 2 Diabetes Mellitus (T2DM). "
-            f"The model predicts that your probability of having T2DM is **{predicted_proba[1]*100:.1f}%**. "
+            f"According to our model, you have a high risk of type 2 diabetes. "
+            f"The model predicts that your probability of having type 2 diabetes is {probability:.1f}%. "
             "While this is just an estimate, it suggests that you may be at significant risk. "
-            "We recommend that you consult a healthcare professional for further evaluation."
+            "I recommend that you consult a healthcare provider as soon as possible for further evaluation and "
+            "to ensure you receive an accurate diagnosis and necessary treatment."
         )
     else:
         advice = (
-            f"According to our model, you have a **low risk** of Type 2 Diabetes Mellitus (T2DM). "
-            f"The model predicts that your probability of not having T2DM is **{predicted_proba[0]*100:.1f}%**. "
-            "Maintaining a healthy lifestyle is still very important. "
-            "Regular check-ups are recommended to monitor your health."
+            f"According to our model, you have a low risk of type 2 diabetes. "
+            f"The model predicts that your probability of not having type 2 diabetes is {probability:.1f}%. "
+            "However, maintaining a healthy lifestyle is still very important. "
+            "I recommend regular check-ups to monitor your health, "
+            "and to seek medical advice promptly if you experience any symptoms."
         )
-    
     st.write(advice)
-    
-    # 计算 SHAP 值并显示 force plot
-    st.subheader("Feature Contribution to Prediction (SHAP Values)")
-    
-    
-    explainer = shap.Explainer(model, feature_names)
-    
-    # 计算 SHAP 值
-    shap_values = explainer(X_scaled)
-    
-    # 创建特征 DataFrame
-    feature_df = pd.DataFrame(features, columns=feature_names)
-    
-    # 绘制 SHAP force plot
-    # 使用 matplotlib=True 直接在 Streamlit 中渲染
-    fig, ax = plt.subplots(figsize=(10, 2))
-    shap.force_plot(
-        shap_values[0].base_values,
-        shap_values[0].values,
-        feature_df.iloc[0],
-        feature_names=feature_names,
-        matplotlib=True,
-        show=False
-    )
-    st.pyplot(fig)
-    
-    # 可选：显示 SHAP summary plot
-    st.subheader("Overall Feature Importance")
-    shap.summary_plot(shap_values, X_scaled, feature_names=feature_names, show=False)
-    plt.tight_layout()
-    st.pyplot(plt)
+
+    # Calculate SHAP values and display force plot
+    explainer = shap.LinearExplainer(model, features, feature_perturbation="interventional")
+    shap_values = explainer.shap_values(pd.DataFrame([feature_values], columns=feature_names))
+    shap.force_plot(explainer.expected_value, shap_values[0], pd.DataFrame([feature_values], columns=feature_names), matplotlib=True)
+    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)
+    st.image("shap_force_plot.png")
