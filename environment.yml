@@ -9,7 +9,7 @@ dependencies:
   - joblib=1.4.2
   - numpy=1.23.5
   - pandas=2.2.3
-  - shap
+  - shap=0.45.1
   - matplotlib
   - ipython
   - pip
