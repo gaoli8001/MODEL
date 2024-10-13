@@ -9,8 +9,10 @@ scipy
 seaborn
 xgboost
 lightgbm
-imblearn
 python
 imbalanced-learn
+scikit-optimize
+openpyxl
+tabulate
 pip
 
