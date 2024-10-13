@@ -1,0 +1,19 @@
+name: myenv
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pandas
+  - numpy
+  - scipy
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - openpyxl
+  - tabulate
+  - scikit-optimize 
+  - pip
+  - xgboost
+  - lightgbm
+  - pip:
+    - streamlit
