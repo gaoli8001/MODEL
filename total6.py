@@ -4,8 +4,8 @@ Created on Sun Oct 13 10:21:23 2024
 
 @author: gaoli
 """
-import os
-os.system('pip install joblib')
+import sys
+print(sys.path)
 import streamlit as st
 import joblib
 import numpy as np
