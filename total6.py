@@ -111,16 +111,8 @@ if st.button("Predict"):
     # 计算 SHAP 值并显示 force plot
     st.subheader("Feature Contribution to Prediction (SHAP Values)")
     
-    # 初始化 SHAP explainer
-    # 使用训练数据的一部分作为背景数据，通常应使用训练集的一部分
-    # 这里假设缩放器已经在训练时拟合，使用更多背景数据以提高解释准确性
-    # 为简化示例，使用当前输入的一部分作为背景数据
-    background_data = X_scaled[:1]
     
-    # 使用 Independent masker 替代 feature_perturbation
-    masker = shap.maskers.Independent(background_data)
-    
-    explainer = shap.Explainer(model, masker)
+    explainer = shap.Explainer(model, feature_names)
     
     # 计算 SHAP 值
     shap_values = explainer(X_scaled)
