@@ -9,9 +9,9 @@ dependencies:
   - joblib=1.4.2
   - numpy
   - pandas=2.2.3
-  - shap=0.45.1
-  - matplotlib=3.9.2
-  - ipython=8.18.1
+  - shap
+  - matplotlib
+  - ipython
   - pip
   - pip:
     - streamlit
