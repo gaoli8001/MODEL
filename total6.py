@@ -4,8 +4,11 @@ Created on Sun Oct 13 10:21:23 2024
 
 @author: gaoli
 """
-import sys
-print(sys.path)
+
+   
+    
+    
+    
 import streamlit as st
 import joblib
 import numpy as np
@@ -13,34 +16,44 @@ import pandas as pd
 import shap
 import matplotlib.pyplot as plt
 
-# Load the trained logistic regression model
-model = joblib.load('LOG.pkl')
+# Load the trained logistic regression model, scaler, and feature names
+@st.cache(allow_output_mutation=True)
+def load_model():
+    saved = joblib.load('LOG.pkl')
+    model = saved['model']
+    scaler = saved['scaler']
+    feature_names = saved['features']
+    return model, scaler, feature_names
+
+model, scaler, feature_names = load_model()
 
 # Define the feature names based on the final selected features
-feature_names = ['HbA1c', 'Tyg', 'LDL', 'age', 'RBC', 'sex', 'GLU', 'WBC', 'PLR', 'CRP']
+# Ensure this matches the order used during model training
+# feature_names = ['HbA1c', 'Weight', 'Tyg', 'LDL', 'age', 'RBC', 'sex', 'GLU', 'WBC', 'PLR', 'CRP']
 
 # Streamlit user interface
-st.title("Type 2 Diabetes Mellitus Predictor")
+st.title("Type 2 Diabetes Mellitus (T2DM) Predictor")
+
+st.header("Input Your Health Metrics")
 
 # Collect user inputs for each feature
 
 # HbA1c (%)
 HbA1c = st.number_input("HbA1c (%):", min_value=4.0, max_value=15.0, value=5.5, format="%.1f")
 
-# Triglyceride and Glucose to compute Tyg
-triglyceride = st.number_input("Triglyceride (mg/dL):", min_value=10.0, max_value=1000.0, value=150.0, format="%.1f")
-glucose = st.number_input("Glucose (mg/dL):", min_value=50.0, max_value=500.0, value=100.0, format="%.1f")
+# Weight (kg)
+Weight = st.number_input("Weight (kg):", min_value=30.0, max_value=200.0, value=70.0, format="%.1f")
 
-# Compute Tyg using the formula: ln [triglyceride (mg/dL) × glucose (mg/dL)/2]
-Tyg = np.log((triglyceride * glucose) / 2)
+# Tyg
+Tyg = st.number_input("Triglyceride and Glucose Index (Tyg):", min_value=-10.0, max_value=10.0, value=0.0, format="%.2f")
 
-# LDL Cholesterol
+# LDL Cholesterol (mg/dL)
 LDL = st.number_input("Low-Density Lipoprotein Cholesterol (LDL) (mg/dL):", min_value=10.0, max_value=300.0, value=100.0, format="%.1f")
 
-# Age
-age = st.number_input("Age:", min_value=1, max_value=120, value=50)
+# Age (years)
+age = st.number_input("Age (years):", min_value=1, max_value=120, value=50)
 
-# RBC
+# RBC (×10¹²/L)
 RBC = st.number_input("Red Blood Cell Count (RBC) (×10¹²/L):", min_value=2.0, max_value=10.0, value=4.5, format="%.2f")
 
 # Sex
@@ -48,84 +61,85 @@ sex_options = {'Female': 0, 'Male': 1}
 sex_input = st.selectbox("Sex:", options=list(sex_options.keys()))
 sex = sex_options[sex_input]
 
-# GLU (Assuming it's fasting blood glucose level)
+# GLU (Blood Glucose Level) (mg/dL)
 GLU = st.number_input("Blood Glucose Level (GLU) (mg/dL):", min_value=50.0, max_value=500.0, value=100.0, format="%.1f")
 
-# WBC
+# WBC (×10⁹/L)
 WBC = st.number_input("White Blood Cell Count (WBC) (×10⁹/L):", min_value=1.0, max_value=20.0, value=6.0, format="%.1f")
 
-# Platelet count and Lymphocyte count to compute PLR
-platelet_count = st.number_input("Platelet Count (×10⁹/L):", min_value=10.0, max_value=1000.0, value=250.0, format="%.1f")
-lymphocyte_count = st.number_input("Lymphocyte Count (×10⁹/L):", min_value=0.1, max_value=10.0, value=2.0, format="%.2f")
+# PLR (Platelet-to-Lymphocyte Ratio)
+PLR = st.number_input("Platelet-to-Lymphocyte Ratio (PLR):", min_value=0.0, max_value=500.0, value=100.0, format="%.2f")
 
-# Compute PLR using the formula: Platelet count / Lymphocyte count
-PLR = platelet_count / lymphocyte_count
-
-# CRP
+# CRP (mg/L)
 CRP = st.number_input("C-Reactive Protein (CRP) (mg/L):", min_value=0.0, max_value=200.0, value=5.0, format="%.1f")
 
 # Collect the inputs into a feature array
-feature_values = [HbA1c, Tyg, LDL, age, RBC, sex, GLU, WBC, PLR, CRP]
+feature_values = [HbA1c, Weight, Tyg, LDL, age, RBC, sex, GLU, WBC, PLR, CRP]
 features = np.array([feature_values])
 
 # When the user clicks the "Predict" button
 if st.button("Predict"):
-    # Predict class and probabilities
-    predicted_class = model.predict(features)[0]
-    predicted_proba = model.predict_proba(features)[0]
-
+    # Preprocess input using the loaded scaler
+    X_scaled = scaler.transform(features)
+    
+    # Make prediction
+    predicted_class = model.predict(X_scaled)[0]
+    predicted_proba = model.predict_proba(X_scaled)[0]
+    
     # Display prediction results
+    st.subheader("Prediction Results")
     if predicted_class == 1:
         st.write(f"**Prediction:** High risk of Type 2 Diabetes Mellitus (T2DM)")
     else:
         st.write(f"**Prediction:** Low risk of Type 2 Diabetes Mellitus (T2DM)")
     st.write(f"**Probability of T2DM:** {predicted_proba[1]*100:.1f}%")
     st.write(f"**Probability of Non-T2DM:** {predicted_proba[0]*100:.1f}%")
-
+    
     # Generate advice based on prediction results
     if predicted_class == 1:
         advice = (
-            f"According to our model, you have a high risk of Type 2 Diabetes Mellitus (T2DM). "
-            f"The model predicts that your probability of having T2DM is {predicted_proba[1]*100:.1f}%. "
+            f"According to our model, you have a **high risk** of Type 2 Diabetes Mellitus (T2DM). "
+            f"The model predicts that your probability of having T2DM is **{predicted_proba[1]*100:.1f}%**. "
             "While this is just an estimate, it suggests that you may be at significant risk. "
             "We recommend that you consult a healthcare professional for further evaluation."
         )
     else:
         advice = (
-            f"According to our model, you have a low risk of Type 2 Diabetes Mellitus (T2DM). "
-            f"The model predicts that your probability of not having T2DM is {predicted_proba[0]*100:.1f}%. "
+            f"According to our model, you have a **low risk** of Type 2 Diabetes Mellitus (T2DM). "
+            f"The model predicts that your probability of not having T2DM is **{predicted_proba[0]*100:.1f}%**. "
             "Maintaining a healthy lifestyle is still very important. "
             "Regular check-ups are recommended to monitor your health."
         )
-
+    
     st.write(advice)
-
+    
     # Calculate SHAP values and display force plot
-    # Note: For the SHAP explainer, we need background data. We'll use a small sample for demonstration.
-
-    # Create background data (mean values)
-    background_data = np.mean(features, axis=0).reshape(1, -1)
-
-    # Create SHAP explainer for logistic regression model
-    explainer = shap.LinearExplainer(model, background_data)
-
+    st.subheader("Feature Contribution to Prediction (SHAP Values)")
+    
+    # Initialize SHAP explainer for logistic regression model
+    explainer = shap.LinearExplainer(model, X_scaled, feature_perturbation="interventional")
+    
     # Calculate SHAP values
-    shap_values = explainer.shap_values(features)
-
+    shap_values = explainer.shap_values(X_scaled)
+    
+    # Create a DataFrame for the input features
+    feature_df = pd.DataFrame(features, columns=feature_names)
+    
     # Plot SHAP force plot
     shap.initjs()
-    st.subheader("Feature Contribution to Prediction (SHAP Values)")
-    # Convert feature values to a DataFrame for better display in SHAP plots
-    feature_df = pd.DataFrame(features, columns=feature_names)
+    fig, ax = plt.subplots(figsize=(10, 2))
     shap.force_plot(
-        explainer.expected_value, shap_values[0], feature_df.iloc[0], feature_names=feature_names, matplotlib=True
+        explainer.expected_value,
+        shap_values[0],
+        feature_df.iloc[0],
+        feature_names=feature_names,
+        matplotlib=True,
+        show=False
     )
-    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=300)
-    st.image("shap_force_plot.png")
-
-    # Optionally, display SHAP summary plot
+    st.pyplot(fig)
+    
+    # Optionally, display a SHAP summary plot
     st.subheader("Overall Feature Importance")
-    shap.summary_plot(shap_values, feature_df, feature_names=feature_names, show=False)
+    shap.summary_plot(shap_values, X_scaled, feature_names=feature_names, show=False)
     plt.tight_layout()
-    plt.savefig("shap_summary_plot.png", bbox_inches='tight', dpi=300)
-    st.image("shap_summary_plot.png")
+    st.pyplot(plt)
