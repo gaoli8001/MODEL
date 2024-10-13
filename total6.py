@@ -17,7 +17,7 @@ import shap
 import matplotlib.pyplot as plt
 
 # Load the trained logistic regression model, scaler, and feature names
-@st.cache(allow_output_mutation=True)
+@st.cache_resource
 def load_model():
     saved = joblib.load('LOG.pkl')
     model = saved['model']
