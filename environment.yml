@@ -2,7 +2,7 @@ name: myenv
 channels:
   - defaults
 dependencies:
-  - python=3.9
+  - python
   - pandas
   - numpy
   - scipy
@@ -12,6 +12,7 @@ dependencies:
   - openpyxl
   - tabulate
   - scikit-optimize 
+  - imbalanced-learn
   - pip
   - xgboost
   - lightgbm
