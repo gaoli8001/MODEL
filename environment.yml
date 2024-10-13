@@ -2,7 +2,7 @@ name: myenv
 channels:
   - defaults
 dependencies:
-  - python
+  - python=3.9
   - pandas
   - numpy
   - scipy
