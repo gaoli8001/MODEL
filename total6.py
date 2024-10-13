@@ -8,7 +8,6 @@ Created on Sun Oct 13 10:21:23 2024
    
     
     
-    
 import streamlit as st
 import joblib
 import numpy as np
@@ -16,7 +15,7 @@ import pandas as pd
 import shap
 import matplotlib.pyplot as plt
 
-# Load the trained logistic regression model, scaler, and feature names
+# 加载训练好的逻辑回归模型、缩放器和特征名称
 @st.cache_resource
 def load_model():
     saved = joblib.load('LOG.pkl')
@@ -27,16 +26,12 @@ def load_model():
 
 model, scaler, feature_names = load_model()
 
-# Define the feature names based on the final selected features
-# Ensure this matches the order used during model training
-# feature_names = ['HbA1c', 'Weight', 'Tyg', 'LDL', 'age', 'RBC', 'sex', 'GLU', 'WBC', 'PLR', 'CRP']
-
-# Streamlit user interface
+# Streamlit 用户界面
 st.title("Type 2 Diabetes Mellitus (T2DM) Predictor")
 
 st.header("Input Your Health Metrics")
 
-# Collect user inputs for each feature
+# 收集用户输入的各个特征
 
 # HbA1c (%)
 HbA1c = st.number_input("HbA1c (%):", min_value=4.0, max_value=15.0, value=5.5, format="%.1f")
@@ -73,20 +68,20 @@ PLR = st.number_input("Platelet-to-Lymphocyte Ratio (PLR):", min_value=0.0, max_
 # CRP (mg/L)
 CRP = st.number_input("C-Reactive Protein (CRP) (mg/L):", min_value=0.0, max_value=200.0, value=5.0, format="%.1f")
 
-# Collect the inputs into a feature array
+# 将输入收集到特征数组中
 feature_values = [HbA1c, Weight, Tyg, LDL, age, RBC, sex, GLU, WBC, PLR, CRP]
 features = np.array([feature_values])
 
-# When the user clicks the "Predict" button
+# 用户点击 "Predict" 按钮时执行的操作
 if st.button("Predict"):
-    # Preprocess input using the loaded scaler
+    # 预处理输入：应用缩放器
     X_scaled = scaler.transform(features)
     
-    # Make prediction
+    # 进行预测
     predicted_class = model.predict(X_scaled)[0]
     predicted_proba = model.predict_proba(X_scaled)[0]
     
-    # Display prediction results
+    # 显示预测结果
     st.subheader("Prediction Results")
     if predicted_class == 1:
         st.write(f"**Prediction:** High risk of Type 2 Diabetes Mellitus (T2DM)")
@@ -95,7 +90,7 @@ if st.button("Predict"):
     st.write(f"**Probability of T2DM:** {predicted_proba[1]*100:.1f}%")
     st.write(f"**Probability of Non-T2DM:** {predicted_proba[0]*100:.1f}%")
     
-    # Generate advice based on prediction results
+    # 根据预测结果生成建议
     if predicted_class == 1:
         advice = (
             f"According to our model, you have a **high risk** of Type 2 Diabetes Mellitus (T2DM). "
@@ -113,24 +108,32 @@ if st.button("Predict"):
     
     st.write(advice)
     
-    # Calculate SHAP values and display force plot
+    # 计算 SHAP 值并显示 force plot
     st.subheader("Feature Contribution to Prediction (SHAP Values)")
     
-    # Initialize SHAP explainer for logistic regression model
-    explainer = shap.LinearExplainer(model, X_scaled, feature_perturbation="interventional")
+    # 初始化 SHAP explainer
+    # 使用训练数据的一部分作为背景数据，通常应使用训练集的一部分
+    # 这里假设缩放器已经在训练时拟合，使用更多背景数据以提高解释准确性
+    # 为简化示例，使用当前输入的一部分作为背景数据
+    background_data = X_scaled[:1]
     
-    # Calculate SHAP values
-    shap_values = explainer.shap_values(X_scaled)
+    # 使用 Independent masker 替代 feature_perturbation
+    masker = shap.maskers.Independent(background_data)
     
-    # Create a DataFrame for the input features
+    explainer = shap.Explainer(model, masker)
+    
+    # 计算 SHAP 值
+    shap_values = explainer(X_scaled)
+    
+    # 创建特征 DataFrame
     feature_df = pd.DataFrame(features, columns=feature_names)
     
-    # Plot SHAP force plot
-    shap.initjs()
+    # 绘制 SHAP force plot
+    # 使用 matplotlib=True 直接在 Streamlit 中渲染
     fig, ax = plt.subplots(figsize=(10, 2))
     shap.force_plot(
-        explainer.expected_value,
-        shap_values[0],
+        shap_values[0].base_values,
+        shap_values[0].values,
         feature_df.iloc[0],
         feature_names=feature_names,
         matplotlib=True,
@@ -138,7 +141,7 @@ if st.button("Predict"):
     )
     st.pyplot(fig)
     
-    # Optionally, display a SHAP summary plot
+    # 可选：显示 SHAP summary plot
     st.subheader("Overall Feature Importance")
     shap.summary_plot(shap_values, X_scaled, feature_names=feature_names, show=False)
     plt.tight_layout()
