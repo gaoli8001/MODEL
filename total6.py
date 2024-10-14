@@ -5,8 +5,11 @@ Created on Sun Oct 13 10:21:23 2024
 @author: gaoli
 """
 
-   
-    
+import joblib
+    print("Joblib imported successfully.")
+except ImportError as e:
+    print("Error importing joblib:", e)
+
 import sys
 print(sys.executable)
  
