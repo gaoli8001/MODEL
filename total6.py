@@ -12,6 +12,8 @@ except ImportError as e:
 
 import sys
 print(sys.executable)
+import sys
+print(sys.path)
  
 import streamlit as st
 import joblib
